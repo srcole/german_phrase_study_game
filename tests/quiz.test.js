@@ -29,3 +29,33 @@ test('progress aggregates repeated attempts and averages quiz percentages', () =
 test('empty progress contains no NaN or invented attempts', () => {
   assert.deepEqual(calculateProgress([], []), { quizzes: 0, questions: 0, accuracy: 0, averageScore: 0, rows: [] });
 });
+
+test('quiz direction uses the opposite language as the expected answer', async () => {
+  const { quizText } = await import('../src/lib/quiz.js');
+  const item = { german: 'das Wasser', english: 'water' };
+  const forward = quizText(item, 'de-en');
+  const reverse = quizText(item, 'en-de');
+  assert.equal(forward.prompt, 'das Wasser');
+  assert.equal(forward.expected, 'water');
+  assert.equal(forward.promptLang, 'de');
+  assert.equal(reverse.prompt, 'water');
+  assert.equal(reverse.expected, 'das Wasser');
+  assert.equal(reverse.answerLang, 'de');
+  assert.ok(compareAnswer('  DAS WASSER! ', reverse.expected));
+  assert.equal(compareAnswer('water', reverse.expected), false);
+});
+
+test('old history and invalid preferences default to German-to-English', async () => {
+  const { normalizeDirection, quizText } = await import('../src/lib/quiz.js');
+  const item = { german: 'groß', english: 'big' };
+  for (const direction of [undefined, null, '', 'invalid', 'de-en']) {
+    assert.equal(normalizeDirection(direction), 'de-en');
+    assert.equal(quizText(item, direction).expected, 'big');
+  }
+  assert.equal(normalizeDirection('en-de'), 'en-de');
+});
+
+test('German grading preserves meaningful umlaut differences', () => {
+  assert.ok(compareAnswer('SCHLÜSSEL', 'Schlüssel'));
+  assert.equal(compareAnswer('schon', 'schön'), false);
+});

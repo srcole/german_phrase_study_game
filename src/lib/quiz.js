@@ -1,3 +1,19 @@
+export const DEFAULT_DIRECTION = 'de-en';
+export function normalizeDirection(direction) {
+  return direction === 'en-de' ? 'en-de' : DEFAULT_DIRECTION;
+}
+export function quizText(item, direction) {
+  const reverse = normalizeDirection(direction) === 'en-de';
+  return {
+    prompt: reverse ? item.english : item.german,
+    expected: reverse ? item.german : item.english,
+    promptLang: reverse ? 'en' : 'de',
+    answerLang: reverse ? 'de' : 'en',
+    answerLanguage: reverse ? 'German' : 'English',
+    label: reverse ? 'English → German' : 'German → English',
+  };
+}
+
 export function normalizeAnswer(answer) {
   return String(answer).normalize('NFKC').toLowerCase().trim()
     .replace(/[’‘]/g, "'").replace(/['.,!?;:„“”"()]/g, '').replace(/\s+/g, ' ');

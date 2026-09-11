@@ -1,6 +1,6 @@
 # Wortreise
 
-A small German study app built with React, Vite, JavaScript, plain CSS, and the Supabase JavaScript client. Practice 10 random words from 42 elementary entries, type English translations, review examples, and override automatic grading. Completed quizzes sync across devices through Supabase Auth and PostgreSQL. History shows individual answers; Progress includes overall statistics and vocabulary sorted by lowest accuracy.
+A small German study app built with React, Vite, JavaScript, plain CSS, and the Supabase JavaScript client. Practice 10 random words from 42 elementary entries, type translations in either direction, review examples, and override automatic grading. Completed quizzes sync across devices through Supabase Auth and PostgreSQL. History shows individual answers; Progress includes overall statistics and vocabulary sorted by lowest accuracy.
 
 No custom backend, Vercel functions, database views, stored procedures, or paid services are required. Navigation uses `#quiz`, `#history`, `#progress`, and `#account`: fragments stay in the browser, so refreshes work on Vercel without rewrites.
 
@@ -40,7 +40,7 @@ Open the local URL printed by Vite (normally http://localhost:5173). Restart Vit
 1. Sign in at https://supabase.com and create an organization/project on the **Free** plan. Choose a region and a strong database password; the app never needs that password. Wait for provisioning.
 2. Use the project's **Connect** dialog to copy the project URL. In **Settings → API Keys**, copy the **publishable** key (`sb_publishable_…`). A legacy `anon` key also works. See [Supabase API keys](https://supabase.com/docs/guides/getting-started/api-keys).
 3. Put these two values into the local `.env` variables above. Never use a secret key (`sb_secret_…`), `service_role` key, or database password in a `VITE_` variable. Vite embeds these variables in the public JavaScript bundle.
-4. Open **SQL Editor → New query** in the Supabase project. Copy the entire contents of `supabase/migrations/001_quiz_history.sql`, paste it into the editor, and press **Run**. Run it once on a fresh project. It is transactional; a failed run rolls back. It deliberately does not silently replace existing tables or policies.
+4. Open **SQL Editor → New query** in the Supabase project. Copy the entire contents of `supabase/migrations/001_quiz_history.sql`, paste it into the editor, and press **Run**. Run it once on a fresh project. It is transactional; a failed run rolls back. It deliberately does not silently replace existing tables or policies. Then open another query and run the entire contents of `supabase/migrations/002_quiz_direction.sql` to add the direction field used by this version.
 5. Check **Table Editor** for `quiz_sessions` and `quiz_answers`. Confirm RLS is enabled on both. Keep the `public` schema available through the Data API (the project default).
 6. In **Authentication → Sign In / Providers → Email**, enable email/password signups. Configure a minimum password length of at least 8. Disable anonymous sign-ins; they are not used.
 7. For the simplest setup requiring only Supabase Free, turn **Confirm email** off. Users can then register and log in immediately, but email ownership is **not verified**. The app also supports confirmation-on signup if you have email delivery configured.
@@ -57,6 +57,14 @@ Sessions persist through the Supabase client and refresh automatically. Logout c
 Vocabulary stays in `src/data/vocabulary.js`; preserve IDs when editing it. Historical expected answers use the current local vocabulary. Browser-supplied scores and manual grades are self-reported study data, not trusted competition results.
 
 Saving uses two requests: session insert followed by one bulk answer insert. Without a database function/server transaction these cannot be atomic. Stable UUIDs, unique constraints, and reads before retries prevent duplicate records on retry. If the second request fails, stay on the results page and use **Retry saving**. History flags missing answers; Progress counts saved answers and separately averages session scores. An abandoned partial save can remain in history. No update/delete permission is added to hide that limitation.
+
+Use **End quiz** at any point before finishing to discard the entire quiz, including answers already graded. This stops audio and returns to the start screen without writing any results to Supabase. Only **Finish quiz** after question 10 starts saving. Completed quizzes cannot be discarded with this button.
+
+On the **Quiz** start screen, use **Quiz direction** above **Start a quiz** to choose **Show German → guess English** or **Show English → guess German**. The choice applies to newly started quizzes; an active quiz keeps its original direction. The setting is remembered per account in this browser, not synced between devices. In German answers, include noun articles (der/die/das), use infinitives for verbs, and retain umlauts. Valid alternatives can still be marked correct. Completed sessions store their direction, and History displays the corresponding prompt and expected answer. Progress combines attempts in both directions. German audio still plays only after a guess is submitted.
+
+### Updating an existing Supabase project
+
+Before deploying the version with quiz direction, run `supabase/migrations/002_quiz_direction.sql` once in **Supabase → SQL Editor → New query → Run**. Do not rerun `001` on an existing project. The new column defaults old sessions to German → English; RLS and table permissions remain unchanged. Fresh projects need both migrations in order.
 
 An active quiz survives tab navigation but is held in memory until saved; refreshing or logging out discards it. The app warns on refresh/close while work is unsaved. Avoid changing quiz history concurrently while a large paginated history fetch is in progress. These simple frontend statistics fetch all your rows in 500-row pages; they are intended for hobby-sized histories.
 
@@ -116,10 +124,18 @@ Repeat with A and B reversed. Then log out and run SELECT and INSERT requests on
 8. Open the production app and verify signup/login, quiz saving, History, Progress, logout, and refreshing `/#history`. If email confirmation is enabled, also check that the confirmation link returns to your production app.
 9. Subsequent pushes to the production branch trigger production deployments; other branches/PRs can create previews through Vercel's Git integration. Environment variable changes require a new deployment because Vite reads them at build time. SQL changes are applied separately in Supabase, not by Vercel.
 
+## German pronunciation
+
+After submitting a guess, the app reads the German word or phrase aloud. Use **Replay German audio** in the feedback to hear it again. Playback uses the browser’s built-in speech synthesis with a German voice at a slightly slower pace; no API key, paid service, or database change is needed. Available voices and audio quality depend on the browser/device; some voices require a network connection. The app explicitly selects a voice tagged German, preferring German (Germany), and never falls back to an English/default voice. If voices are still loading, it waits up to two seconds for a German voice. If none is available, it asks you to install or enable a German (Deutsch) text-to-speech voice in your device settings and reload the page. If playback fails, it shows a retry message; unsupported browsers can still complete quizzes. See [browser speech synthesis](https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesis).
+
+To check playback on your device, submit a guess, listen for the German prompt, and press Replay. Repeated replay clicks restart the audio instead of queuing copies. Moving to the next question, changing navigation tabs, or logging out cancels playback. Changing the manual grade does not replay the word. Check both desktop and mobile after deployment, as automated logic tests cannot verify audible output.
+
 ## Verification and scope
 
 Automated tests cover normalization, rejection of wrong answers, random unique selection, final manual grades, empty states in calculations, and progress aggregation. Matching ignores case, repeated whitespace, and common punctuation; it deliberately does not guess synonyms or spelling. Use manual grading for valid alternate translations.
 
 The production build can run without credentials and shows setup guidance. Live authentication, SQL execution/RLS, cross-device persistence, and deployment require your Supabase/Vercel accounts and must be smoke-tested after configuration. Responsive CSS, semantic forms, visible focus styles, live feedback, and labeled controls support desktop, mobile, and keyboard use.
 
-Latest local verification: `npm install` completed with 0 reported vulnerabilities; `npm test` passed all 6 tests; `npm run build` completed successfully. Node 22.23.2 was downloaded to a temporary directory for these checks because Node/npm were not on this machine's PATH. Install Node normally for ongoing development. Live Supabase and browser interaction tests have not been run against a configured project.
+Initial local verification: `npm install` completed with 0 reported vulnerabilities; `npm test` passed all 6 tests; `npm run build` completed successfully. Node 22.23.2 was downloaded to a temporary directory for these checks because Node/npm were not on this machine's PATH. Install Node normally for ongoing development. Live Supabase and browser interaction tests have not been run against a configured project.
+
+Direction/end-quiz verification: `npm test` covers both translation directions, historical defaults, and German normalization in addition to existing tests. After deployment, submit several answers and use End quiz; confirm History/Progress have no new rows. Repeat after grading question 10 but before pressing Finish quiz. Change direction on the Quiz start screen, complete a quiz in each direction, and verify History shows the original prompt/expected language even after changing settings again.
