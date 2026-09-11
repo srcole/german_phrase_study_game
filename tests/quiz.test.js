@@ -59,3 +59,27 @@ test('German grading preserves meaningful umlaut differences', () => {
   assert.ok(compareAnswer('SCHLÜSSEL', 'Schlüssel'));
   assert.equal(compareAnswer('schon', 'schön'), false);
 });
+
+test('quiz selection supports one question, custom lengths, and all active vocabulary', () => {
+  for (const count of [1, 5, 10, 20, vocabulary.length]) {
+    const selected = selectQuestions(vocabulary, count);
+    assert.equal(selected.length, count);
+    assert.equal(new Set(selected.map(item => item.id)).size, count);
+  }
+  for (const count of [0, -1, 2.5, NaN, Infinity, '5', vocabulary.length + 1]) {
+    assert.throws(() => selectQuestions(vocabulary, count), RangeError);
+  }
+});
+
+test('scores and progress use actual lengths for mixed-length quizzes', () => {
+  assert.deepEqual(scoreQuiz([{ correct: true }]), { correct: 1, incorrect: 0, total: 1, percentage: 100 });
+  const answers = Array.from({ length: 5 }, (_, index) => ({ vocabulary_id: 'gut', correct: index < 3 }));
+  assert.equal(scoreQuiz(answers).percentage, 60);
+  const stats = calculateProgress([
+    { correct_count: 1, total_count: 1 },
+    { correct_count: 3, total_count: 5 },
+  ], [{ vocabulary_id: 'gut', correct: true }, ...answers]);
+  assert.equal(stats.questions, 6);
+  assert.equal(stats.accuracy, 67);
+  assert.equal(stats.averageScore, 80);
+});

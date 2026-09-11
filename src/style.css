@@ -6,3 +6,7 @@
 .settings p{margin-bottom:0}
 
 .voice-picker{margin:20px 0}.voice-picker select{width:100%;max-width:440px}.voice-picker p{margin:8px 0 16px}
+
+.quiz-length{margin-top:20px}
+
+.review-controls{margin-top:22px}.review-list{list-style:none;margin:0;padding:0}.review-list li{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:16px 12px;border-bottom:1px solid #e3e9df;border-radius:8px}.review-list strong{display:block;font-size:18px;font-weight:600}.review-list span{display:block;color:#64736b;font-size:14px}.review-list .is-playing{background:#edf3e2}.review-list button{flex-shrink:0}@media(max-width:760px){nav{gap:2px;flex-wrap:wrap}nav a{padding:8px 9px;font-size:13px}}

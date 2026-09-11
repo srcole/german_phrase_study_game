@@ -23,6 +23,9 @@ export function compareAnswer(answer, expected) {
   return normalized.length > 0 && normalized === normalizeAnswer(expected);
 }
 export function selectQuestions(items, count = 10, random = Math.random) {
+  if (!Number.isInteger(count) || count < 1 || count > items.length) {
+    throw new RangeError('Quiz length must be a whole number between 1 and the vocabulary size.');
+  }
   const shuffled = [...items];
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(random() * (i + 1));

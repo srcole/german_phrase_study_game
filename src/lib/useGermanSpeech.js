@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { listGermanVoices, selectGermanVoice } from './germanVoice.js';
+import { playSpeechSequence } from './speechSequence.js';
 
 const preferenceKey = 'wortreise:german-voice';
 
 export function useGermanSpeech() {
   const supported = typeof window !== 'undefined'
     && 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
-  const utteranceRef = useRef(null);
+  const playbackRef = useRef(null);
+  const [speakingIndex, setSpeakingIndex] = useState(null);
   const pendingRef = useRef(null);
   const [audioError, setAudioError] = useState('');
   const [voices, setVoices] = useState([]);
@@ -21,14 +23,11 @@ export function useGermanSpeech() {
       pendingRef.current();
       pendingRef.current = null;
     }
-    const utterance = utteranceRef.current;
-    if (utterance) {
-      // Ignore late events from canceled speech when replaying or navigating.
-      utterance.onend = null;
-      utterance.onerror = null;
-      utteranceRef.current = null;
-      window.speechSynthesis.cancel();
+    if (playbackRef.current) {
+      playbackRef.current();
+      playbackRef.current = null;
     }
+    setSpeakingIndex(null);
   }
 
   useEffect(() => {
@@ -58,6 +57,9 @@ export function useGermanSpeech() {
     if (!supported) return;
     stop();
     setAudioError('');
+    const texts = Array.isArray(german) ? german : [german];
+    if (!texts.length) return;
+    setSpeakingIndex(-1);
     try {
       const voices = window.speechSynthesis.getVoices();
       const voice = selectGermanVoice(voices, preferredRef.current);
@@ -80,25 +82,16 @@ export function useGermanSpeech() {
             window.speechSynthesis.removeEventListener('voiceschanged', onVoicesChanged);
           };
         } else {
+          setSpeakingIndex(null);
           setAudioError('No German voice is available. Enable a German (Deutsch) speech voice on your device and try again.');
         }
         return;
       }
-      const utterance = new window.SpeechSynthesisUtterance(german);
-      utterance.lang = voice.lang.replace(/_/g, '-');
-      utterance.voice = voice;
-      utterance.rate = 0.85;
-      // Retain the utterance until playback ends (needed by some browsers).
-      utteranceRef.current = utterance;
-      utterance.onend = () => { utteranceRef.current = null; };
-      utterance.onerror = event => {
-        utteranceRef.current = null;
-        if (event.error === 'canceled' || event.error === 'interrupted') return;
-        setAudioError('Audio could not play. Try Replay German audio. If it still fails, check that your device has a German speech voice enabled.');
-      };
-      // Submit/Replay normally calls this directly. If delayed voice loading
-      // loses user activation, the error message offers an explicit replay.
-      window.speechSynthesis.speak(utterance);
+      playbackRef.current = playSpeechSequence(
+        window.speechSynthesis, window.SpeechSynthesisUtterance, texts, voice,
+        setSpeakingIndex,
+        () => setAudioError('Audio could not play. Try playing again or choose another German voice.'),
+      );
     } catch {
       stop();
       setAudioError('Audio is unavailable right now. Try Replay German audio or another browser.');
@@ -106,5 +99,5 @@ export function useGermanSpeech() {
   }
 
   const selectedVoice = selectGermanVoice(voices, preferredVoice);
-  return { speak, stop, supported, audioError, voices, preferredVoice, chooseVoice, selectedVoice };
+  return { speak, stop, supported, audioError, voices, preferredVoice, chooseVoice, selectedVoice, speakingIndex };
 }
