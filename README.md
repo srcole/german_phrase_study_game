@@ -101,8 +101,20 @@ Repeat with A and B reversed. Then log out and run SELECT and INSERT requests on
 2. Sign in to Vercel, choose **Add New → Project**, connect GitHub, and import the repository under your Hobby account.
 3. Select the **Vite** framework preset and repository root. Use install command `npm ci`, build command `npm run build`, output directory `dist`, and Node.js 22.x or 24.x. No server functions are needed. See [Vite on Vercel](https://vercel.com/docs/frameworks/frontend/vite).
 4. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in the project's **Environment Variables** for Production (and Preview/Development if used). Use the same URL and publishable key as local development.
-5. Deploy. Add the resulting origin to Supabase's auth settings as described above. Verify signup/login, quiz saving, History, Progress, logout, and refreshing `/#history`.
-6. Subsequent pushes to the production branch trigger production deployments; other branches/PRs can create previews through Vercel's Git integration. Environment variable changes require a new deployment because Vite reads them at build time. SQL changes are applied separately in Supabase, not by Vercel.
+5. Under **Optional Integrations**, **skip the Add button next to Supabase**. This app connects directly to the Supabase project you already created using the two environment variables above. The [Vercel Supabase integration](https://vercel.com/integrations/supabase) can automate project/environment setup, but it is not required for this app. Make sure both `VITE_` variables are entered, then click **Deploy**.
+6. Wait for the deployment to finish. Open your Vercel project's **Settings → Domains** and find its stable production domain, for example `german-phrase-study-game.vercel.app`. Use that domain rather than a deployment-specific preview address. Your app's **origin** is `https://` plus that domain: for example, `https://german-phrase-study-game.vercel.app`. Do not include a page path, `/#quiz`, or query parameters. This is your Vercel app address, not the `https://…supabase.co` API URL used in your environment variables.
+7. Open the **Supabase dashboard**, select the same project whose URL/key you used in Vercel, and go to **Authentication → URL Configuration**. Set **Site URL** to your production origin (replacing `http://localhost:5173`) and save. Under **Redirect URLs**, click **Add URL**, enter that same production origin, and save. Keep `http://localhost:5173` in Redirect URLs if you still develop locally. For the example above, the settings are:
+
+   | Supabase setting | Value |
+   | --- | --- |
+   | Site URL | `https://german-phrase-study-game.vercel.app` |
+   | Redirect URLs, first entry | `https://german-phrase-study-game.vercel.app` |
+   | Redirect URLs, local development entry | `http://localhost:5173` |
+
+   Replace the example domain with your actual domain. These settings tell Supabase where it may send users after authentication email links; this app explicitly requests its current origin for signup confirmation. See [Supabase redirect configuration](https://supabase.com/docs/guides/auth/redirect-urls). If email confirmation is disabled, ordinary email/password signup and login do not use an email redirect, but configuring these URLs now keeps the project ready for confirmation later. Saving these Supabase settings does **not** require redeploying Vercel. If you later add a custom domain, update Site URL and add the new origin to Redirect URLs.
+
+8. Open the production app and verify signup/login, quiz saving, History, Progress, logout, and refreshing `/#history`. If email confirmation is enabled, also check that the confirmation link returns to your production app.
+9. Subsequent pushes to the production branch trigger production deployments; other branches/PRs can create previews through Vercel's Git integration. Environment variable changes require a new deployment because Vite reads them at build time. SQL changes are applied separately in Supabase, not by Vercel.
 
 ## Verification and scope
 
