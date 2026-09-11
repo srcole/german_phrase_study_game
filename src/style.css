@@ -4,3 +4,5 @@
 .settings{margin:28px 0;padding:24px 0;border-top:1px solid #dfe5da;border-bottom:1px solid #dfe5da}
 .settings select{max-width:100%;margin-bottom:12px}
 .settings p{margin-bottom:0}
+
+.voice-picker{margin:20px 0}.voice-picker select{width:100%;max-width:440px}.voice-picker p{margin:8px 0 16px}

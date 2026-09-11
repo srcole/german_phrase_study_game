@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { selectGermanVoice } from './germanVoice.js';
+import { listGermanVoices, selectGermanVoice } from './germanVoice.js';
+
+const preferenceKey = 'wortreise:german-voice';
 
 export function useGermanSpeech() {
   const supported = typeof window !== 'undefined'
@@ -7,6 +9,12 @@ export function useGermanSpeech() {
   const utteranceRef = useRef(null);
   const pendingRef = useRef(null);
   const [audioError, setAudioError] = useState('');
+  const [voices, setVoices] = useState([]);
+  const [preferredVoice, setPreferredVoice] = useState(() => {
+    try { return localStorage.getItem(preferenceKey) || ''; }
+    catch { return ''; }
+  });
+  const preferredRef = useRef(preferredVoice);
 
   function stop() {
     if (pendingRef.current) {
@@ -26,13 +34,25 @@ export function useGermanSpeech() {
   useEffect(() => {
     if (!supported) return;
     // Some browsers load their voice list asynchronously on first access.
-    window.speechSynthesis.getVoices();
+    const updateVoices = () => setVoices(listGermanVoices(window.speechSynthesis.getVoices()));
+    updateVoices();
+    window.speechSynthesis.addEventListener('voiceschanged', updateVoices);
     window.addEventListener('hashchange', stop);
     return () => {
       window.removeEventListener('hashchange', stop);
+      window.speechSynthesis.removeEventListener('voiceschanged', updateVoices);
       stop();
     };
   }, [supported]);
+
+  function chooseVoice(key) {
+    stop();
+    preferredRef.current = key;
+    setPreferredVoice(key);
+    setAudioError('');
+    try { localStorage.setItem(preferenceKey, key); }
+    catch { /* Selection still works for the current visit. */ }
+  }
 
   function speak(german, waitForVoices = true) {
     if (!supported) return;
@@ -40,17 +60,19 @@ export function useGermanSpeech() {
     setAudioError('');
     try {
       const voices = window.speechSynthesis.getVoices();
-      const voice = selectGermanVoice(voices);
+      const voice = selectGermanVoice(voices, preferredRef.current);
       if (!voice) {
         if (waitForVoices) {
           // Voice discovery can finish after the first guess is submitted.
           // Cancel this pending playback on replay, navigation, or logout.
           const onVoicesChanged = () => {
-            if (selectGermanVoice(window.speechSynthesis.getVoices())) speak(german, false);
+            if (selectGermanVoice(window.speechSynthesis.getVoices(), preferredRef.current)) speak(german, false);
           };
           const timer = window.setTimeout(() => {
             stop();
-            setAudioError('No German voice is available. Install or enable a German (Deutsch) text-to-speech voice in your device settings, then reload this page and try Replay German audio.');
+            setAudioError(preferredRef.current
+              ? 'Your selected German voice is unavailable. Choose another German voice or Automatic, then replay.'
+              : 'No German voice is available. Install or enable a German (Deutsch) text-to-speech voice in your device settings, then reload this page and try Replay German audio.');
           }, 2000);
           window.speechSynthesis.addEventListener('voiceschanged', onVoicesChanged);
           pendingRef.current = () => {
@@ -63,7 +85,7 @@ export function useGermanSpeech() {
         return;
       }
       const utterance = new window.SpeechSynthesisUtterance(german);
-      utterance.lang = voice.lang;
+      utterance.lang = voice.lang.replace(/_/g, '-');
       utterance.voice = voice;
       utterance.rate = 0.85;
       // Retain the utterance until playback ends (needed by some browsers).
@@ -83,5 +105,6 @@ export function useGermanSpeech() {
     }
   }
 
-  return { speak, stop, supported, audioError };
+  const selectedVoice = selectGermanVoice(voices, preferredVoice);
+  return { speak, stop, supported, audioError, voices, preferredVoice, chooseVoice, selectedVoice };
 }
