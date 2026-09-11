@@ -1,6 +1,6 @@
 # Wortreise
 
-A small German study app built with React, Vite, JavaScript, plain CSS, and the Supabase JavaScript client. Practice 10 random words from 42 elementary entries, type translations in either direction, review examples, and override automatic grading. Completed quizzes sync across devices through Supabase Auth and PostgreSQL. History shows individual answers; Progress includes overall statistics and vocabulary sorted by lowest accuracy.
+A small German study app built with React, Vite, JavaScript, plain CSS, and the Supabase JavaScript client. Practice 10 random words from 61 elementary entries, type translations in either direction, review examples, and override automatic grading. Completed quizzes sync across devices through Supabase Auth and PostgreSQL. History shows individual answers; Progress includes overall statistics and vocabulary sorted by lowest accuracy.
 
 No custom backend, Vercel functions, database views, stored procedures, or paid services are required. Navigation uses `#quiz`, `#history`, `#progress`, and `#account`: fragments stay in the browser, so refreshes work on Vercel without rewrites.
 
@@ -54,7 +54,7 @@ Sessions persist through the Supabase client and refresh automatically. Logout c
 
 `supabase/migrations/001_quiz_history.sql` creates both tables, constraints, indexes, and separate SELECT/INSERT policies. It revokes all table privileges from PUBLIC, anon, and authenticated, then grants authenticated only SELECT and INSERT. There are no UPDATE or DELETE grants/policies. User IDs must match `auth.uid()`; the answer policy and composite foreign key also require ownership of the referenced session. Authorization is enforced by PostgreSQL, even when requests bypass the UI. See [Supabase RLS](https://supabase.com/docs/guides/database/postgres/row-level-security).
 
-Vocabulary stays in `src/data/vocabulary.js`; preserve IDs when editing it. Historical expected answers use the current local vocabulary. Browser-supplied scores and manual grades are self-reported study data, not trusted competition results.
+Vocabulary stays in `src/data/vocabulary.js`; preserve IDs when editing it. Historical expected answers use the local vocabulary lookup, including retired entries that are excluded from new quizzes. Active vocabulary includes numbers 1–10, multiples of ten through 100, and 1000. Browser-supplied scores and manual grades are self-reported study data, not trusted competition results.
 
 Saving uses two requests: session insert followed by one bulk answer insert. Without a database function/server transaction these cannot be atomic. Stable UUIDs, unique constraints, and reads before retries prevent duplicate records on retry. If the second request fails, stay on the results page and use **Retry saving**. History flags missing answers; Progress counts saved answers and separately averages session scores. An abandoned partial save can remain in history. No update/delete permission is added to hide that limitation.
 
