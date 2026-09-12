@@ -9,4 +9,6 @@
 
 .quiz-length{margin-top:20px}
 
-.review-controls{margin-top:22px}.review-list{list-style:none;margin:0;padding:0}.review-list li{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:16px 12px;border-bottom:1px solid #e3e9df;border-radius:8px}.review-list strong{display:block;font-size:18px;font-weight:600}.review-list span{display:block;color:#64736b;font-size:14px}.review-list .is-playing{background:#edf3e2}.review-list button{flex-shrink:0}@media(max-width:760px){nav{gap:2px;flex-wrap:wrap}nav a{padding:8px 9px;font-size:13px}}
+.review-controls{margin-top:22px}.review-table{min-width:620px}.review-table .is-playing{background:#edf3e2}.review-table button{white-space:nowrap}.pronunciation-help{color:#536c42;letter-spacing:.3px}.pronunciation-guide{margin:18px 0 24px;font-size:13px;color:#64736b}.pronunciation-guide summary{cursor:pointer;color:#345741;font-weight:600}.pronunciation-guide p{margin:12px 0}.pronunciation-guide li{margin-bottom:8px}@media(max-width:760px){nav{gap:2px;flex-wrap:wrap}nav a{padding:8px 9px;font-size:13px}}
+
+.quiz-example{margin:24px 0;padding:20px 0;border-top:1px solid #d7e1ce;border-bottom:1px solid #d7e1ce}.quiz-example h3{font-size:14px;margin-bottom:12px}.quiz-example p{margin-bottom:8px}.quiz-example p[lang="de"]{color:#213e36}.quiz-example button{margin-top:8px}
